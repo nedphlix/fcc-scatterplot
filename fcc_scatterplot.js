@@ -10,10 +10,19 @@ function draw(data) {
 	// basic variables
 	"use strict";
 	var margin = 75,
-		width = 900 - margin,
+		width = 1000 - margin,
 		height = 600 - margin,
-		radius = 5,
-		color = 'black';
+		radius = 6,
+		color_clean = '#91bfdb',
+		color_doping = '#fc8d59';
+
+	function color_picker(d) {
+		if (d["Doping"] !== "") {
+			return color_doping;
+		} else {
+			return color_clean;
+		}
+	}
 
 	// chart title 
 	d3.select("body")
@@ -38,6 +47,12 @@ function draw(data) {
 		.enter()
 		.append("circle");
 
+	d3.select("svg")
+		.selectAll("text")
+		.data(data)
+		.enter()
+		.append("text");
+
 	// find range of time column
 	var time_extent = d3.extent(data, function(d) {
 		return d["Time"];
@@ -49,6 +64,7 @@ function draw(data) {
 	var place_extent = d3.extent(data, function(d) {
 		return d["Place"];
 	})
+	place_extent[1] += 1;
 	place_extent.reverse();
 	console.log("place_extent: " + place_extent);
 
@@ -69,6 +85,19 @@ function draw(data) {
 	// create y axis for place
 	var place_axis = d3.axisLeft()
 		.scale(place_scale);
+
+	// draw data labels
+	d3.selectAll("text")
+		.attr("class", "label")
+		.attr("x", function(d) {
+			return time_scale(d["Time"]) + 10;
+		})
+		.attr("y", function(d) {
+			return place_scale(d["Place"]) + 5;
+		})
+		.text(function(d) {
+			return d["Name"];
+		})
 
 	// draw x-axis
 	d3.select("svg")
@@ -96,7 +125,72 @@ function draw(data) {
 			return place_scale(d["Place"]);
 		})
 		.attr("r", radius)
-		.attr("fill", color);
+		.attr("fill", function(d) {
+			return color_picker(d);
+		})
+		.attr("data-legend", function(d) {
+			return d["Name"];
+		})
+		.on("mouseover", function(d) {
+			tipMouseover(d);
+		})
+		.on("mouseout", function(d) {
+			tipMouseout(d);
+		})
+
+	// add legend
+	var legend = svg.append("g")
+		.attr("class", "legend")
+		.attr("transform", "translate(" + (width - 150) + "," + (height - 100) + ")")
+		.selectAll("g")
+		.data(["No doping allegations", "Doping allegations"])
+		.enter()
+		.append("g");
+
+	legend.append("circle")
+		.attr("cy", function(d, i) {
+			return i * 30;
+		})
+		.attr("r", radius)
+		.attr("fill", function(d) {
+			if(d == "No doping allegations") {
+				return color_clean;
+			} else {
+				return color_doping;
+			}
+		});
+
+	legend.append("text")
+		.attr("y", function(d, i) {
+			return i * 30 + 5; 
+		})
+		.attr("x", radius * 3)
+		.text(function(d) {
+			return d;
+		})
+
+	// add tooltips
+	var tooltip = d3.select("body").append("div")
+		.attr("class", "tooltip")
+		.style("opacity", 0);
+
+		// tooltip mouseover event handler
+		var tipMouseover = function(d) {
+			var html = d["Name"] + " (" + d["Nationality"] + ")" + " in " + d["Year"] + ": XX:YY" + "<br>" + d["Doping"]; // d["Name"] + "<br>" + d["Doping"]
+
+			tooltip.transition()
+				.duration(100)
+				.style("opacity", .9);
+			tooltip.html(html)
+				.style("left", (d3.event.pageX + 5) + "px")
+				.style("top", (d3.event.pageY + 10) + "px")
+		};
+
+		var tipMouseout = function(d) {
+			tooltip.transition()
+				.duration(200)
+				.style("opacity", 0)
+		};
 
 	// add description text below
 	d3.select("body")
