@@ -2,15 +2,17 @@ function draw(data) {
 	
 	// format data
 	var parseTime = d3.timeParse("%M:%S");
+	var times = [];
 
 	data.forEach(function(d) {
+		times.push(d["Time"]);
 		d["Time"] = parseTime(d["Time"]);
 	});
 
 	// basic variables
 	"use strict";
 	var margin = 75,
-		width = 1000 - margin,
+		width = 1200 - margin,
 		height = 600 - margin,
 		radius = 6,
 		color_clean = '#91bfdb',
@@ -37,28 +39,30 @@ function draw(data) {
 	var svg = d3.select("body")
 		.append("svg")
 			.attr("width", width + margin)
-			.attr("height", height + margin)
-		.append("g")
+			.attr("height", height + margin);
+		
+	var layer0 = svg.append("g")
 			.attr("class", "chart");
+	var layer1 = svg.append("g")
+	var layer2 = svg.append("g")
 
-	d3.select("svg")
-		.selectAll("circle")
+	layer1.selectAll("circle")
 		.data(data)
 		.enter()
-		.append("circle");
+		.append("circle")
+			.attr("class", "data-circle");
 
-	d3.select("svg")
-		.selectAll("text")
+	layer2.selectAll("text")
 		.data(data)
 		.enter()
-		.append("text");
+		.append("text")
+			.attr("class", "data-label");
 
 	// find range of time column
 	var time_extent = d3.extent(data, function(d) {
 		return d["Time"];
 	})
 	time_extent.reverse();
-	console.log("time_extent: " + time_extent);
 
 	// find range of place
 	var place_extent = d3.extent(data, function(d) {
@@ -66,7 +70,6 @@ function draw(data) {
 	})
 	place_extent[1] += 1;
 	place_extent.reverse();
-	console.log("place_extent: " + place_extent);
 
 	// create x-axis scale mapping times -> pixels
 	var time_scale = d3.scaleTime()
@@ -87,8 +90,7 @@ function draw(data) {
 		.scale(place_scale);
 
 	// draw data labels
-	d3.selectAll("text")
-		.attr("class", "label")
+	d3.selectAll(".data-label")
 		.attr("x", function(d) {
 			return time_scale(d["Time"]) + 10;
 		})
@@ -100,8 +102,7 @@ function draw(data) {
 		})
 
 	// draw x-axis
-	d3.select("svg")
-		.append("g")
+	layer0.append("g")
 		.attr("class", "x axis")
 		.attr("transform", "translate(0," + height + ")")
 		.call(time_axis
@@ -109,14 +110,13 @@ function draw(data) {
 		);
 
 	// draw y axis
-	d3.select("svg")
-		.append("g")
+	layer0.append("g")
 		.attr("class", "y axis")
 		.attr("transform", "translate(" + margin + ",0)")
 		.call(place_axis);
 
 	// draw data circles
-	d3.selectAll("circle")
+	d3.selectAll(".data-circle")
 		.attr("class", "circle")
 		.attr("cx", function(d) {
 			return time_scale(d["Time"]);
@@ -139,7 +139,7 @@ function draw(data) {
 		})
 
 	// add legend
-	var legend = svg.append("g")
+	var legend = layer2.append("g")
 		.attr("class", "legend")
 		.attr("transform", "translate(" + (width - 150) + "," + (height - 100) + ")")
 		.selectAll("g")
@@ -175,8 +175,9 @@ function draw(data) {
 		.style("opacity", 0);
 
 		// tooltip mouseover event handler
-		var tipMouseover = function(d) {
-			var html = d["Name"] + " (" + d["Nationality"] + ")" + " in " + d["Year"] + ": XX:YY" + "<br>" + d["Doping"]; // d["Name"] + "<br>" + d["Doping"]
+		var tipMouseover = function(d, i) {
+			console.log();
+			var html = d["Name"] + " (" + d["Year"] + " - " + d["Nationality"] + ")" + " in " + times[d["Place"]] + " min.<br>" + d["Doping"] + "."; // d["Name"] + "<br>" + d["Doping"]
 
 			tooltip.transition()
 				.duration(100)
